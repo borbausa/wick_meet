@@ -99,8 +99,8 @@ const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
 export function ConfigProvider({ children }: { children: ReactNode }) {
   // Model configuration state
   const [modelConfig, setModelConfig] = useState<ModelConfig>({
-    provider: 'ollama',
-    model: 'llama3.2:latest',
+    provider: 'custom-openai',
+    model: 'wick',
     whisperModel: 'large-v3',
     ollamaEndpoint: null
   });
@@ -243,7 +243,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
                 const resolvedModel = customConfig.model || data.model || '';
                 setModelConfig(prev => ({
                   ...prev,
-                  provider: data.provider,
+                  provider: 'custom-openai',
                   model: resolvedModel || prev.model,
                   whisperModel: data.whisperModel || prev.whisperModel,
                   customOpenAIEndpoint: customConfig.endpoint,
@@ -268,14 +268,41 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             }
           }
 
-          // For non-custom-openai providers, just set base config
-          setModelConfig(prev => ({
-            ...prev,
-            provider: data.provider,
-            model: data.model || prev.model,
-            whisperModel: data.whisperModel || prev.whisperModel,
-            ollamaEndpoint: data.ollamaEndpoint,
-          }));
+          // Force custom-openai provider regardless of what backend returns
+          try {
+            const customConfig = await configService.getCustomOpenAIConfig();
+            if (customConfig) {
+              const resolvedModel = customConfig.model || data.model || 'wick';
+              setModelConfig(prev => ({
+                ...prev,
+                provider: 'custom-openai',
+                model: resolvedModel,
+                whisperModel: data.whisperModel || prev.whisperModel,
+                customOpenAIEndpoint: customConfig.endpoint,
+                customOpenAIModel: customConfig.model,
+                customOpenAIApiKey: customConfig.apiKey,
+                maxTokens: customConfig.maxTokens,
+                temperature: customConfig.temperature,
+                topP: customConfig.topP,
+              }));
+            } else {
+              setModelConfig(prev => ({
+                ...prev,
+                provider: 'custom-openai',
+                model: data.model || prev.model,
+                whisperModel: data.whisperModel || prev.whisperModel,
+                ollamaEndpoint: data.ollamaEndpoint,
+              }));
+            }
+          } catch {
+            setModelConfig(prev => ({
+              ...prev,
+              provider: 'custom-openai',
+              model: data.model || prev.model,
+              whisperModel: data.whisperModel || prev.whisperModel,
+              ollamaEndpoint: data.ollamaEndpoint,
+            }));
+          }
 
           // Seed per-provider model cache from DB
           if (data.model) {

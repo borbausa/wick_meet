@@ -143,13 +143,19 @@ export function ModelSettingsModal({
   const [isEndpointSectionCollapsed, setIsEndpointSectionCollapsed] = useState<boolean>(true); // Collapsed by default
   const [ollamaNotInstalled, setOllamaNotInstalled] = useState<boolean>(false); // Track if Ollama is not installed
 
-  // Custom OpenAI state
-  const [customOpenAIEndpoint, setCustomOpenAIEndpoint] = useState<string>(modelConfig.customOpenAIEndpoint || '');
-  const [customOpenAIModel, setCustomOpenAIModel] = useState<string>(modelConfig.customOpenAIModel || '');
-  const [customOpenAIApiKey, setCustomOpenAIApiKey] = useState<string>(modelConfig.customOpenAIApiKey || '');
-  const [customMaxTokens, setCustomMaxTokens] = useState<string>(modelConfig.maxTokens?.toString() || '');
-  const [customTemperature, setCustomTemperature] = useState<string>(modelConfig.temperature?.toString() || '');
-  const [customTopP, setCustomTopP] = useState<string>(modelConfig.topP?.toString() || '');
+  // Custom OpenAI state — with hardcoded defaults for first-time use
+  const CUSTOM_OPENAI_DEFAULT_ENDPOINT = 'http://10.150.21.129:8000/v1';
+  const CUSTOM_OPENAI_DEFAULT_MODEL = 'wick';
+  const CUSTOM_OPENAI_DEFAULT_MAX_TOKENS = '80000';
+  const CUSTOM_OPENAI_DEFAULT_TEMPERATURE = '0.7';
+  const CUSTOM_OPENAI_DEFAULT_TOP_P = '0.9';
+
+  const [customOpenAIEndpoint, setCustomOpenAIEndpoint] = useState<string>(modelConfig.customOpenAIEndpoint || CUSTOM_OPENAI_DEFAULT_ENDPOINT);
+  const [customOpenAIModel, setCustomOpenAIModel] = useState<string>(modelConfig.customOpenAIModel || CUSTOM_OPENAI_DEFAULT_MODEL);
+  const [customOpenAIApiKey, setCustomOpenAIApiKey] = useState<string>(modelConfig.customOpenAIApiKey || '1234');
+  const [customMaxTokens, setCustomMaxTokens] = useState<string>(modelConfig.maxTokens?.toString() || CUSTOM_OPENAI_DEFAULT_MAX_TOKENS);
+  const [customTemperature, setCustomTemperature] = useState<string>(modelConfig.temperature?.toString() || CUSTOM_OPENAI_DEFAULT_TEMPERATURE);
+  const [customTopP, setCustomTopP] = useState<string>(modelConfig.topP?.toString() || CUSTOM_OPENAI_DEFAULT_TOP_P);
   const [isCustomOpenAIAdvancedOpen, setIsCustomOpenAIAdvancedOpen] = useState<boolean>(false);
   const [isTestingConnection, setIsTestingConnection] = useState<boolean>(false);
 
@@ -290,12 +296,12 @@ export function ModelSettingsModal({
             try {
               const customConfig = (await invoke('api_get_custom_openai_config')) as any;
               if (customConfig) {
-                setCustomOpenAIEndpoint(customConfig.endpoint || '');
-                setCustomOpenAIModel(customConfig.model || '');
+                setCustomOpenAIEndpoint(customConfig.endpoint || CUSTOM_OPENAI_DEFAULT_ENDPOINT);
+                setCustomOpenAIModel(customConfig.model || CUSTOM_OPENAI_DEFAULT_MODEL);
                 setCustomOpenAIApiKey(customConfig.apiKey || '');
-                setCustomMaxTokens(customConfig.maxTokens?.toString() || '');
-                setCustomTemperature(customConfig.temperature?.toString() || '');
-                setCustomTopP(customConfig.topP?.toString() || '');
+                setCustomMaxTokens(customConfig.maxTokens?.toString() || CUSTOM_OPENAI_DEFAULT_MAX_TOKENS);
+                setCustomTemperature(customConfig.temperature?.toString() || CUSTOM_OPENAI_DEFAULT_TEMPERATURE);
+                setCustomTopP(customConfig.topP?.toString() || CUSTOM_OPENAI_DEFAULT_TOP_P);
               }
             } catch (err) {
               console.error('Failed to fetch custom OpenAI config:', err);
@@ -349,13 +355,13 @@ export function ModelSettingsModal({
         hasApiKey: !!modelConfig.customOpenAIApiKey,
       });
 
-      // Always sync from modelConfig (which comes from context if available)
-      setCustomOpenAIEndpoint(modelConfig.customOpenAIEndpoint || '');
-      setCustomOpenAIModel(modelConfig.customOpenAIModel || '');
+      // Always sync from modelConfig (which comes from context if available), falling back to defaults
+      setCustomOpenAIEndpoint(modelConfig.customOpenAIEndpoint || CUSTOM_OPENAI_DEFAULT_ENDPOINT);
+      setCustomOpenAIModel(modelConfig.customOpenAIModel || CUSTOM_OPENAI_DEFAULT_MODEL);
       setCustomOpenAIApiKey(modelConfig.customOpenAIApiKey || '');
-      setCustomMaxTokens(modelConfig.maxTokens?.toString() || '');
-      setCustomTemperature(modelConfig.temperature?.toString() || '');
-      setCustomTopP(modelConfig.topP?.toString() || '');
+      setCustomMaxTokens(modelConfig.maxTokens?.toString() || CUSTOM_OPENAI_DEFAULT_MAX_TOKENS);
+      setCustomTemperature(modelConfig.temperature?.toString() || CUSTOM_OPENAI_DEFAULT_TEMPERATURE);
+      setCustomTopP(modelConfig.topP?.toString() || CUSTOM_OPENAI_DEFAULT_TOP_P);
     }
   }, [
     modelConfig.provider,
@@ -812,73 +818,21 @@ export function ModelSettingsModal({
             <Select
               value={modelConfig.provider}
               onValueChange={(value) => {
-                const provider = value as ModelConfig['provider'];
-
-                // Clear error state when switching providers
-                setError('');
-
-                // Save current provider's model to localStorage before switching
-                const map = JSON.parse(localStorage.getItem('providerModelMap') || '{}');
-                if (modelConfig.model) {
-                  map[modelConfig.provider] = modelConfig.model;
-                  localStorage.setItem('providerModelMap', JSON.stringify(map));
-                }
-
-                // Try to restore cached model for the new provider
-                const savedModel = map[provider];
-                const providerModels = modelOptions[provider];
-                const defaultModel = providerModels && providerModels.length > 0
-                  ? providerModels[0]
-                  : '';
-                const model = (savedModel && providerModels?.includes(savedModel))
-                  ? savedModel
-                  : defaultModel;
-
-                setModelConfig({
-                  ...modelConfig,
-                  provider,
-                  model,
-                });
-                // API key is now synced automatically via useEffect watching providerApiKeys
-
-                // Load OpenRouter models only when OpenRouter is selected
-                if (provider === 'openrouter') {
-                  loadOpenRouterModels();
-                }
-
-                // Load Built-in AI models when selected
-                if (provider === 'builtin-ai') {
-                  loadBuiltinAiModels();
-                }
-
-                // Load custom OpenAI config when selected
-                if (provider === 'custom-openai') {
-                  invoke<any>('api_get_custom_openai_config').then((config) => {
-                    if (config) {
-                      setCustomOpenAIEndpoint(config.endpoint || '');
-                      setCustomOpenAIModel(config.model || '');
-                      setCustomOpenAIApiKey(config.apiKey || '');
-                      setCustomMaxTokens(config.maxTokens?.toString() || '');
-                      setCustomTemperature(config.temperature?.toString() || '');
-                      setCustomTopP(config.topP?.toString() || '');
-                    }
-                  }).catch((err) => {
-                    console.error('Failed to load custom OpenAI config:', err);
-                  });
-                }
+                // Provider is locked to custom-openai
+                return;
               }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select provider" />
               </SelectTrigger>
               <SelectContent className="max-h-64 overflow-y-auto">
-                <SelectItem value="builtin-ai">Built-in AI (Offline, No API needed)</SelectItem>
-                <SelectItem value="claude">Claude</SelectItem>
+                {/* <SelectItem value="builtin-ai">Built-in AI (Offline, No API needed)</SelectItem> */}
+                {/* <SelectItem value="claude">Claude</SelectItem> */}
                 <SelectItem value="custom-openai">Custom Server (OpenAI)</SelectItem>
-                <SelectItem value="groq">Groq</SelectItem>
-                <SelectItem value="ollama">Ollama</SelectItem>
-                <SelectItem value="openai">OpenAI</SelectItem>
-                <SelectItem value="openrouter">OpenRouter</SelectItem>
+                {/* <SelectItem value="groq">Groq</SelectItem> */}
+                {/* <SelectItem value="ollama">Ollama</SelectItem> */}
+                {/* <SelectItem value="openai">OpenAI</SelectItem> */}
+                {/* <SelectItem value="openrouter">OpenRouter</SelectItem> */}
               </SelectContent>
             </Select>
 
@@ -965,7 +919,7 @@ export function ModelSettingsModal({
                 id="custom-model"
                 value={customOpenAIModel}
                 onChange={(e) => setCustomOpenAIModel(e.target.value)}
-                placeholder="gpt-4, llama-3-70b, etc."
+                placeholder="gpt-4o, qwen2.5:7b, llama-3-70b, etc."
                 className="mt-1"
               />
               <p className="text-xs text-muted-foreground mt-1">

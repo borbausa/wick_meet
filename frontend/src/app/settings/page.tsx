@@ -9,7 +9,7 @@ import { TranscriptSettings } from '@/components/TranscriptSettings';
 import { RecordingSettings } from '@/components/RecordingSettings';
 import { PreferenceSettings } from '@/components/PreferenceSettings';
 import { SummaryModelSettings } from '@/components/SummaryModelSettings';
-import { BetaSettings } from '@/components/BetaSettings';
+// import { BetaSettings } from '@/components/BetaSettings';
 import { useConfig } from '@/contexts/ConfigContext';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
@@ -19,7 +19,7 @@ const TABS = [
   { value: 'recording', label: 'Recordings', icon: Mic },
   { value: 'Transcriptionmodels', label: 'Transcription', icon: DatabaseIcon },
   { value: 'summaryModels', label: 'Summary', icon: SparkleIcon },
-  { value: 'beta', label: 'Beta', icon: FlaskConical }
+  // { value: 'beta', label: 'Beta', icon: FlaskConical }
 ] as const;
 
 export default function SettingsPage() {
@@ -124,9 +124,9 @@ export default function SettingsPage() {
             <TabsContent value="summaryModels">
               <SummaryModelSettings />
             </TabsContent>
-            <TabsContent value="beta" className="mt-6">
+            {/* <TabsContent value="beta" className="mt-6">
               <BetaSettings />
-            </TabsContent>
+            </TabsContent> */}
           </Tabs>
         </div>
       </div>

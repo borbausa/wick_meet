@@ -181,7 +181,7 @@ pub async fn complete_onboarding<R: Runtime>(
         .flatten();
     let (provider, model_to_save) = match existing_config {
         Some(cfg) if cfg.provider == "custom-openai" => ("custom-openai", cfg.model),
-        _ => ("builtin-ai", model),
+        _ => ("builtin-ai", model.clone()),
     };
 
     if let Err(e) = SettingsRepository::save_model_config(

@@ -669,8 +669,7 @@ jobs:
       - name: Download Parakeet transcription models
         shell: bash
         run: |
-          mkdir -p frontend/src-tauri/models/parakeet/parakeet-tdt-0.6b-v2-onnx-int8
-          cd frontend/src-tauri/models/parakeet/parakeet-tdt-0.6b-v2-onnx-int8
+          cd frontend/src-tauri/models
           BASE="https://huggingface.co/istupakov/parakeet-tdt-0.6b-v2-onnx/resolve/main"
           for f in encoder-model.int8.onnx decoder_joint-model.int8.onnx nemo128.onnx vocab.txt; do
             echo "Downloading $f ..."

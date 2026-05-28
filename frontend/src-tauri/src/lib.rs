@@ -401,7 +401,7 @@ pub async fn copy_bundled_models(app: &tauri::AppHandle) -> Result<(), String> {
     // Read bundled models from resource directory (Tauri copies resources here at build)
     let resource_dir = app.path().resource_dir()
         .map_err(|e| format!("Failed to get resource dir: {}", e))?;
-    let bundled_dir = resource_dir.join("models").join("parakeet").join("parakeet-tdt-0.6b-v2-onnx-int8");
+    let bundled_dir = resource_dir.join("models");
 
     if !bundled_dir.exists() {
         log::info!("No bundled parakeet models found, skipping copy");

@@ -96,7 +96,7 @@
         ],
         "resources": [
             "templates/*.json",
-            "models/**"
+            "models/*"
         ],
         "externalBin": [
             "binaries/llama-helper",

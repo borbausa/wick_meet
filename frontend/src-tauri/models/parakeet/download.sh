@@ -5,7 +5,7 @@
 set -e
 
 DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-TARGET="$DIR/parakeet/parakeet-tdt-0.6b-v2-onnx-int8"
+TARGET="$DIR/models/parakeet/parakeet-tdt-0.6b-v2-onnx-int8"
 BASE="https://huggingface.co/istupakov/parakeet-tdt-0.6b-v2-onnx/resolve/main"
 
 mkdir -p "$TARGET"

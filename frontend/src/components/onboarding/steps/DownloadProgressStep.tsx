@@ -5,6 +5,7 @@ import { Mic, Sparkles, Check, Loader2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { OnboardingContainer } from '../OnboardingContainer';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { useConfig } from '@/contexts/ConfigContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -33,6 +34,8 @@ export function DownloadProgressStep() {
     startBackgroundDownloads,
     completeOnboarding,
   } = useOnboarding();
+  const { modelConfig } = useConfig();
+  const skipSummaryModel = modelConfig.provider === 'custom-openai';
 
   const [recommendedModel, setRecommendedModel] = useState<string>('gemma3:1b');
   const [isMac, setIsMac] = useState(false);
@@ -46,8 +49,8 @@ export function DownloadProgressStep() {
   });
 
   const [gemmaState, setGemmaState] = useState<DownloadState>({
-    status: summaryModelDownloaded ? 'completed' : 'waiting',
-    progress: summaryModelDownloaded ? 100 : 0,
+    status: (skipSummaryModel || summaryModelDownloaded) ? 'completed' : 'waiting',
+    progress: (skipSummaryModel || summaryModelDownloaded) ? 100 : 0,
     downloadedMb: 0,
     totalMb: 806, // 1b model size
     speedMbps: 0,
@@ -274,16 +277,17 @@ export function DownloadProgressStep() {
   }, [selectedSummaryModel]);
 
   const startDownloads = async () => {
-    // Always download both Parakeet and Gemma (system-recommended)
-    if (!parakeetDownloaded || !summaryModelDownloaded) {
+    // Download Parakeet always, Gemma only when using builtin-ai
+    const needsDownload = !parakeetDownloaded || (!skipSummaryModel && !summaryModelDownloaded);
+    if (needsDownload) {
       try {
         if (!parakeetDownloaded) {
           setParakeetState((prev) => ({ ...prev, status: 'downloading' }));
         }
-        if (!summaryModelDownloaded) {
+        if (!skipSummaryModel && !summaryModelDownloaded) {
           setGemmaState((prev) => ({ ...prev, status: 'downloading' }));
         }
-        await startBackgroundDownloads(true);  // Always download both
+        await startBackgroundDownloads(!skipSummaryModel);
       } catch (error) {
         console.error('Failed to start downloads:', error);
         if (!parakeetDownloaded) {
@@ -319,7 +323,7 @@ export function DownloadProgressStep() {
 
     // Check if downloads are complete for toast notification
     const downloadsComplete = parakeetState.status === 'completed' &&
-      gemmaState.status === 'completed';
+      (skipSummaryModel || gemmaState.status === 'completed');
 
     // Show toast if downloads still in progress
     if (!downloadsComplete) {
@@ -452,7 +456,7 @@ export function DownloadProgressStep() {
             '~670 MB'
           )}
 
-          {renderDownloadCard(
+          {!skipSummaryModel && renderDownloadCard(
             'Summary Engine',
             <Sparkles className="w-5 h-5 text-gray-600" />,
             gemmaState,
@@ -462,7 +466,7 @@ export function DownloadProgressStep() {
 
         {/* Info Message - Only show when Parakeet is downloaded */}
         <AnimatePresence>
-          {parakeetDownloaded && !summaryModelDownloaded && (
+          {parakeetDownloaded && !skipSummaryModel && !summaryModelDownloaded && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}

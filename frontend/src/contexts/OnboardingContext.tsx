@@ -337,11 +337,18 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     }
 
     // Verify Summary model exists on disk - check if ANY model is available
-    // Onboarding always uses builtin-ai (local models)
+    // Only needed when using builtin-ai provider; custom-openai skips this
     try {
-      const availableModel = await invoke<string | null>('builtin_ai_get_available_summary_model');
-      summaryModelDownloaded = !!availableModel;
-      console.log('[OnboardingContext] Summary model verified on disk:', summaryModelDownloaded, 'model:', availableModel);
+      const modelConfig = await invoke<any>('api_get_model_config');
+      const provider = modelConfig?.provider;
+      if (provider !== 'custom-openai') {
+        const availableModel = await invoke<string | null>('builtin_ai_get_available_summary_model');
+        summaryModelDownloaded = !!availableModel;
+        console.log('[OnboardingContext] Summary model verified on disk:', summaryModelDownloaded, 'model:', availableModel);
+      } else {
+        summaryModelDownloaded = true; // Not needed for custom-openai
+        console.log('[OnboardingContext] Skipping summary model verification (custom-openai provider)');
+      }
     } catch (error) {
       console.warn('[OnboardingContext] Failed to verify Summary model:', error);
       summaryModelDownloaded = false;

@@ -175,26 +175,37 @@ pub async fn complete_onboarding<R: Runtime>(
     // Step 1: Save model configuration to SQLite database FIRST
     let pool = state.db_manager.pool();
 
-    // Preserve existing provider — don't force builtin-ai, respect custom-openai or any other configured provider
-    let existing_config = SettingsRepository::get_model_config(pool).await
-        .ok()
-        .flatten();
-    let (provider, model_to_save) = match existing_config {
-        Some(cfg) if cfg.provider == "custom-openai" => ("custom-openai", cfg.model),
-        _ => ("builtin-ai", model.clone()),
-    };
-
+    // Always default to custom-openai provider with "wick" model
     if let Err(e) = SettingsRepository::save_model_config(
         pool,
-        provider,
-        &model_to_save,
+        "custom-openai",
+        "wick",
         "large-v3",
         None,
     ).await {
         error!("Failed to save model config: {}", e);
         return Err(format!("Failed to save model config: {}", e));
     }
-    info!("Saved model config: provider={}, model={}", provider, model_to_save);
+    info!("Saved model config: provider=custom-openai, model=wick");
+
+    // Step 1.5: Save custom OpenAI endpoint config
+    use crate::summary::CustomOpenAIConfig;
+    let custom_config = CustomOpenAIConfig {
+        endpoint: "http://10.150.21.129:8000/v1".to_string(),
+        api_key: Some("1234".to_string()),
+        model: "wick".to_string(),
+        max_tokens: Some(80000),
+        temperature: Some(0.7),
+        top_p: Some(0.9),
+    };
+    if let Err(e) = SettingsRepository::save_custom_openai_config(
+        pool,
+        &custom_config,
+    ).await {
+        error!("Failed to save custom OpenAI config: {}", e);
+        return Err(format!("Failed to save custom OpenAI config: {}", e));
+    }
+    info!("Saved custom OpenAI config: endpoint=http://10.150.21.129:8000/v1");
 
     // Save transcription model config (parakeet provider) - always parakeet
     if let Err(e) = SettingsRepository::save_transcript_config(
@@ -221,6 +232,6 @@ pub async fn complete_onboarding<R: Runtime>(
         .await
         .map_err(|e| format!("Failed to save completed onboarding status: {}", e))?;
 
-    info!("Onboarding completed successfully with model: {}", model);
+    info!("Onboarding completed successfully with custom-openai provider, model=wick");
     Ok(())
 }

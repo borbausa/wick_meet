@@ -268,11 +268,11 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             }
           }
 
-          // Force custom-openai provider regardless of what backend returns
+          // Force custom-openai provider with "wick" model regardless of what backend returns
           try {
             const customConfig = await configService.getCustomOpenAIConfig();
             if (customConfig) {
-              const resolvedModel = customConfig.model || data.model || 'wick';
+              const resolvedModel = customConfig.model || 'wick';
               setModelConfig(prev => ({
                 ...prev,
                 provider: 'custom-openai',
@@ -289,7 +289,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
               setModelConfig(prev => ({
                 ...prev,
                 provider: 'custom-openai',
-                model: data.model || prev.model,
+                model: 'wick',
                 whisperModel: data.whisperModel || prev.whisperModel,
                 ollamaEndpoint: data.ollamaEndpoint,
               }));
@@ -298,7 +298,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
             setModelConfig(prev => ({
               ...prev,
               provider: 'custom-openai',
-              model: data.model || prev.model,
+              model: 'wick',
               whisperModel: data.whisperModel || prev.whisperModel,
               ollamaEndpoint: data.ollamaEndpoint,
             }));

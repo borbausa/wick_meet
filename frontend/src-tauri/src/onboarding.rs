@@ -170,23 +170,31 @@ pub async fn complete_onboarding<R: Runtime>(
     state: tauri::State<'_, AppState>,
     model: String,
 ) -> Result<(), String> {
-    info!("Completing onboarding with builtin-ai model: {}", model);
+    info!("Completing onboarding with model: {}", model);
 
     // Step 1: Save model configuration to SQLite database FIRST
     let pool = state.db_manager.pool();
 
-    // Onboarding always uses builtin-ai (local LLM)
+    // Preserve existing provider — don't force builtin-ai, respect custom-openai or any other configured provider
+    let existing_config = SettingsRepository::get_model_config(pool).await
+        .ok()
+        .flatten();
+    let (provider, model_to_save) = match existing_config {
+        Some(cfg) if cfg.provider == "custom-openai" => ("custom-openai", cfg.model),
+        _ => ("builtin-ai", model),
+    };
+
     if let Err(e) = SettingsRepository::save_model_config(
         pool,
-        "builtin-ai",
-        &model,
+        provider,
+        &model_to_save,
         "large-v3",
         None,
     ).await {
-        error!("Failed to save builtin-ai model config: {}", e);
-        return Err(format!("Failed to save builtin-ai model config: {}", e));
+        error!("Failed to save model config: {}", e);
+        return Err(format!("Failed to save model config: {}", e));
     }
-    info!("Saved builtin-ai model config: model={}", model);
+    info!("Saved model config: provider={}, model={}", provider, model_to_save);
 
     // Save transcription model config (parakeet provider) - always parakeet
     if let Err(e) = SettingsRepository::save_transcript_config(

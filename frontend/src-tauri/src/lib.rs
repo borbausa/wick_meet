@@ -392,8 +392,8 @@ pub fn get_language_preference_internal() -> Option<String> {
 pub async fn copy_bundled_models(app: &tauri::AppHandle) -> Result<(), String> {
     // Get app data directory
     let app_data_dir = app.path().app_data_dir()
-        .join("models")
-        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+        .map_err(|e| format!("Failed to get app data dir: {}", e))?
+        .join("models");
 
     // Create the target directory if needed
     std::fs::create_dir_all(&app_data_dir).map_err(|e| format!("Failed to create models dir: {}", e))?;

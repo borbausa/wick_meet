@@ -149,9 +149,16 @@ impl SummaryService {
                         )
                     }
                     Ok(None) => {
-                        let err_msg = "Custom OpenAI provider selected but no configuration found";
-                        Self::update_process_failed(&pool, &meeting_id, err_msg).await;
-                        return;
+                        // Use built-in defaults when config is not yet saved to database
+                        // These match the frontend defaults in ModelSettingsModal.tsx
+                        info!("No custom OpenAI config in database, using built-in defaults");
+                        (
+                            Some("http://10.150.21.129:8000/v1".to_string()),
+                            Some("1234".to_string()),
+                            Some(80000u32),
+                            Some(0.7f32),
+                            Some(0.9f32),
+                        )
                     }
                     Err(e) => {
                         let err_msg = format!("Failed to retrieve custom OpenAI config: {}", e);

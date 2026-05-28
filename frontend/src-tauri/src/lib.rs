@@ -409,8 +409,9 @@ pub async fn copy_bundled_models(app: &tauri::AppHandle) -> Result<(), String> {
     }
 
     let mut copied = 0usize;
-    // Parakeet engine expects: {models_dir}/parakeet-tdt-0.6b-v2-int8/
-    let dest_dir = app_data_dir.join("parakeet-tdt-0.6b-v2-int8");
+    // Parakeet engine appends .join("parakeet") to the models_dir, so the full path is:
+    // app_data/models/parakeet/parakeet-tdt-0.6b-v2-int8/
+    let dest_dir = app_data_dir.join("parakeet").join("parakeet-tdt-0.6b-v2-int8");
     std::fs::create_dir_all(&dest_dir).ok();
 
     for entry in std::fs::read_dir(&bundled_dir).map_err(|e| format!("Failed to read bundled models: {}", e))? {
@@ -496,17 +497,15 @@ pub fn run() {
             // Set Parakeet models directory
             parakeet_engine::commands::set_models_directory(&_app.handle());
 
-            // Copy bundled parakeet models to app data on first launch
-            let app_for_models = _app.handle().clone();
+            // Copy bundled parakeet models, then initialize the engine
+            // Must wait for copy before init, otherwise engine won't find models and downloads them
+            let app_for_parakeet = _app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                match copy_bundled_models(&app_for_models).await {
+                match copy_bundled_models(&app_for_parakeet).await {
                     Ok(_) => log::info!("Bundled models copied successfully"),
                     Err(e) => log::warn!("Failed to copy bundled models: {}", e),
                 }
-            });
-
-            // Initialize Parakeet engine on startup
-            tauri::async_runtime::spawn(async {
+                // Now safe to init — models are in place
                 if let Err(e) = parakeet_engine::commands::parakeet_init().await {
                     log::error!("Failed to initialize Parakeet engine on startup: {}", e);
                 }

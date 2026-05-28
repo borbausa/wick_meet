@@ -5,6 +5,11 @@
 # dependencies
 /node_modules
 **/models
+!frontend/src-tauri/models/
+!frontend/src-tauri/models/parakeet/
+!frontend/src-tauri/models/parakeet/**
+frontend/src-tauri/models/parakeet/**/*.onnx
+frontend/src-tauri/models/parakeet/**/*.bin
 /.pnp
 .pnp.*
 .yarn/*

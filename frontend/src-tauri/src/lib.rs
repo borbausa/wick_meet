@@ -387,6 +387,53 @@ pub fn get_language_preference_internal() -> Option<String> {
     LANGUAGE_PREFERENCE.lock().ok().map(|lang| lang.clone())
 }
 
+/// Copy bundled models from the Tauri resource directory to the app data directory
+/// on first launch. This avoids requiring internet access for the initial model download.
+pub async fn copy_bundled_models(app: &tauri::AppHandle) -> Result<(), String> {
+    // Get app data directory
+    let app_data_dir = app.path().app_data_dir()
+        .join("models")
+        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+
+    // Create the target directory if needed
+    std::fs::create_dir_all(&app_data_dir).map_err(|e| format!("Failed to create models dir: {}", e))?;
+
+    // Read bundled models from resource directory (Tauri copies resources here at build)
+    let resource_dir = app.path().resource_dir()
+        .map_err(|e| format!("Failed to get resource dir: {}", e))?;
+    let bundled_dir = resource_dir.join("models").join("parakeet").join("parakeet-tdt-0.6b-v2-onnx-int8");
+
+    if !bundled_dir.exists() {
+        log::info!("No bundled parakeet models found, skipping copy");
+        return Ok(());
+    }
+
+    let mut copied = 0usize;
+    // Parakeet engine expects: {models_dir}/parakeet-tdt-0.6b-v2-int8/
+    let dest_dir = app_data_dir.join("parakeet-tdt-0.6b-v2-int8");
+    std::fs::create_dir_all(&dest_dir).ok();
+
+    for entry in std::fs::read_dir(&bundled_dir).map_err(|e| format!("Failed to read bundled models: {}", e))? {
+        let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+        let src = entry.path();
+        if !src.is_file() {
+            continue;
+        }
+        let dest = dest_dir.join(entry.file_name());
+        // Only copy if the file doesn't already exist
+        if dest.exists() {
+            continue;
+        }
+        let file_name = entry.file_name().to_string_lossy().to_string();
+        log::info!("Copying bundled model: {}", file_name);
+        std::fs::copy(&src, &dest).map_err(|e| format!("Failed to copy {}: {}", file_name, e))?;
+        copied += 1;
+    }
+
+    log::info!("Copied {} bundled model files to {}", copied, dest_dir.display());
+    Ok(())
+}
+
 pub fn run() {
     log::set_max_level(log::LevelFilter::Info);
 
@@ -448,6 +495,15 @@ pub fn run() {
 
             // Set Parakeet models directory
             parakeet_engine::commands::set_models_directory(&_app.handle());
+
+            // Copy bundled parakeet models to app data on first launch
+            let app_for_models = _app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                match copy_bundled_models(&app_for_models).await {
+                    Ok(_) => log::info!("Bundled models copied successfully"),
+                    Err(e) => log::warn!("Failed to copy bundled models: {}", e),
+                }
+            });
 
             // Initialize Parakeet engine on startup
             tauri::async_runtime::spawn(async {

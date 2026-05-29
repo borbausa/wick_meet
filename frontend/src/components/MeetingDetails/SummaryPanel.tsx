@@ -106,8 +106,6 @@ export function SummaryPanel({
             <div className="flex-shrink-0">
               <SummaryGeneratorButtonGroup
                 modelConfig={modelConfig}
-                setModelConfig={setModelConfig}
-                onSaveModelConfig={onSaveModelConfig}
                 onGenerateSummary={onGenerateSummary}
                 onStopGeneration={onStopGeneration}
                 customPrompt={customPrompt}
@@ -117,7 +115,6 @@ export function SummaryPanel({
                 onTemplateSelect={onTemplateSelect}
                 hasTranscripts={transcripts.length > 0}
                 isModelConfigLoading={isModelConfigLoading}
-                onOpenModelSettings={onOpenModelSettings}
               />
             </div>
 
@@ -146,8 +143,6 @@ export function SummaryPanel({
           <div className="flex items-center justify-center pt-8 pb-4">
             <SummaryGeneratorButtonGroup
               modelConfig={modelConfig}
-              setModelConfig={setModelConfig}
-              onSaveModelConfig={onSaveModelConfig}
               onGenerateSummary={onGenerateSummary}
               onStopGeneration={onStopGeneration}
               customPrompt={customPrompt}
@@ -157,7 +152,6 @@ export function SummaryPanel({
               onTemplateSelect={onTemplateSelect}
               hasTranscripts={transcripts.length > 0}
               isModelConfigLoading={isModelConfigLoading}
-              onOpenModelSettings={onOpenModelSettings}
             />
           </div>
           {/* Loading spinner */}
@@ -174,8 +168,6 @@ export function SummaryPanel({
           <div className="flex items-center justify-center pt-8 pb-4">
             <SummaryGeneratorButtonGroup
               modelConfig={modelConfig}
-              setModelConfig={setModelConfig}
-              onSaveModelConfig={onSaveModelConfig}
               onGenerateSummary={onGenerateSummary}
               onStopGeneration={onStopGeneration}
               customPrompt={customPrompt}
@@ -185,7 +177,6 @@ export function SummaryPanel({
               onTemplateSelect={onTemplateSelect}
               hasTranscripts={transcripts.length > 0}
               isModelConfigLoading={isModelConfigLoading}
-              onOpenModelSettings={onOpenModelSettings}
             />
           </div>
           {/* Empty state message */}

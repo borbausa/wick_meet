@@ -1,13 +1,6 @@
 "use client";
 
-import { ModelConfig, ModelSettingsModal } from '@/components/ModelSettingsModal';
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { VisuallyHidden } from "@/components/ui/visually-hidden"
+import { ModelConfig } from '@/components/ModelSettingsModal';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import {
@@ -16,18 +9,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sparkles, Settings, Loader2, FileText, Check, Square } from 'lucide-react';
+import { Sparkles, Loader2, FileText, Check, Square } from 'lucide-react';
 import Analytics from '@/lib/analytics';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'sonner';
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { isOllamaNotInstalledError } from '@/lib/utils';
 import { BuiltInModelInfo } from '@/lib/builtin-ai';
 
 interface SummaryGeneratorButtonGroupProps {
   modelConfig: ModelConfig;
-  setModelConfig: (config: ModelConfig | ((prev: ModelConfig) => ModelConfig)) => void;
-  onSaveModelConfig: (config?: ModelConfig) => Promise<void>;
   onGenerateSummary: (customPrompt: string) => Promise<void>;
   onStopGeneration: () => void;
   customPrompt: string;
@@ -37,13 +28,10 @@ interface SummaryGeneratorButtonGroupProps {
   onTemplateSelect: (templateId: string, templateName: string) => void;
   hasTranscripts?: boolean;
   isModelConfigLoading?: boolean;
-  onOpenModelSettings?: (openFn: () => void) => void;
 }
 
 export function SummaryGeneratorButtonGroup({
   modelConfig,
-  setModelConfig,
-  onSaveModelConfig,
   onGenerateSummary,
   onStopGeneration,
   customPrompt,
@@ -52,28 +40,9 @@ export function SummaryGeneratorButtonGroup({
   selectedTemplate,
   onTemplateSelect,
   hasTranscripts = true,
-  isModelConfigLoading = false,
-  onOpenModelSettings
+  isModelConfigLoading = false
 }: SummaryGeneratorButtonGroupProps) {
   const [isCheckingModels, setIsCheckingModels] = useState(false);
-  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
-
-  // Expose the function to open the modal via callback registration
-  useEffect(() => {
-    if (onOpenModelSettings) {
-      // Register our open dialog function with the parent by calling the callback
-      // This allows the parent to store a reference to this function
-      const openDialog = () => {
-        console.log('📱 Opening model settings dialog via callback');
-        setSettingsDialogOpen(true);
-      };
-
-      // Call the parent's callback with our open function
-      // Note: This assumes onOpenModelSettings accepts a function parameter
-      // We'll need to adjust the signature
-      onOpenModelSettings(openDialog);
-    }
-  }, [onOpenModelSettings]);
 
   if (!hasTranscripts) {
     return null;
@@ -84,29 +53,24 @@ export function SummaryGeneratorButtonGroup({
     try {
       const selectedModel = modelConfig.model;
 
-      // Check if specific model is configured
       if (!selectedModel) {
         toast.error('No built-in AI model selected', {
           description: 'Please select a model in settings',
           duration: 5000,
         });
-        setSettingsDialogOpen(true);
         return;
       }
 
-      // Check model readiness (with filesystem refresh)
       const isReady = await invoke<boolean>('builtin_ai_is_model_ready', {
         modelName: selectedModel,
         refresh: true,
       });
 
       if (isReady) {
-        // Model is available, proceed with generation
         onGenerateSummary(customPrompt);
         return;
       }
 
-      // Model not ready - check detailed status
       const modelInfo = await invoke<BuiltInModelInfo | null>('builtin_ai_get_model_info', {
         modelName: selectedModel,
       });
@@ -116,16 +80,14 @@ export function SummaryGeneratorButtonGroup({
           description: `Could not find information for model: ${selectedModel}`,
           duration: 5000,
         });
-        setSettingsDialogOpen(true);
         return;
       }
 
-      // Handle different model states
       const status = modelInfo.status;
 
       if (status.type === 'downloading') {
         toast.info('Model download in progress', {
-          description: `${selectedModel} is downloading (${status.progress}%). Please wait until download completes.`,
+          description: `${selectedModel} is downloading (${status.progress}%). Please wait.`,
           duration: 5000,
         });
         return;
@@ -133,10 +95,9 @@ export function SummaryGeneratorButtonGroup({
 
       if (status.type === 'not_downloaded') {
         toast.error('Model not downloaded', {
-          description: `${selectedModel} needs to be downloaded before use. Opening model settings...`,
+          description: `${selectedModel} needs to be downloaded before use.`,
           duration: 5000,
         });
-        setSettingsDialogOpen(true);
         return;
       }
 
@@ -145,7 +106,6 @@ export function SummaryGeneratorButtonGroup({
           description: `${selectedModel} file is corrupted. Please delete and re-download.`,
           duration: 7000,
         });
-        setSettingsDialogOpen(true);
         return;
       }
 
@@ -154,16 +114,13 @@ export function SummaryGeneratorButtonGroup({
           description: status.Error || 'An error occurred with the model',
           duration: 5000,
         });
-        setSettingsDialogOpen(true);
         return;
       }
 
-      // Fallback
       toast.error('Model not available', {
         description: 'The selected model is not ready for use',
         duration: 5000,
       });
-      setSettingsDialogOpen(true);
 
     } catch (error) {
       console.error('Error checking built-in AI models:', error);
@@ -195,12 +152,10 @@ export function SummaryGeneratorButtonGroup({
       const models = await invoke('get_ollama_models', { endpoint }) as any[];
 
       if (!models || models.length === 0) {
-        // No models available, show message and open settings
         toast.error(
-          'No Ollama models found. Please download gemma2:2b from Model Settings.',
+          'No Ollama models found. Please download a model first.',
           { duration: 5000 }
         );
-        setSettingsDialogOpen(true);
         return;
       }
 
@@ -230,7 +185,6 @@ export function SummaryGeneratorButtonGroup({
           { duration: 5000 }
         );
       }
-      setSettingsDialogOpen(true);
     } finally {
       setIsCheckingModels(false);
     }
@@ -286,36 +240,6 @@ export function SummaryGeneratorButtonGroup({
           )}
         </Button>
       )}
-
-      {/* Settings button */}
-      <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
-        <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            title="Summary Settings"
-          >
-            <Settings />
-            <span className="hidden lg:inline">AI Model</span>
-          </Button>
-        </DialogTrigger>
-        <DialogContent
-          aria-describedby={undefined}
-        >
-          <VisuallyHidden>
-            <DialogTitle>Model Settings</DialogTitle>
-          </VisuallyHidden>
-          <ModelSettingsModal
-            onSave={async (config) => {
-              await onSaveModelConfig(config);
-              setSettingsDialogOpen(false);
-            }}
-            modelConfig={modelConfig}
-            setModelConfig={setModelConfig}
-            skipInitialFetch={true}
-          />
-        </DialogContent>
-      </Dialog>
 
       {/* Template selector dropdown */}
       {availableTemplates.length > 0 && (

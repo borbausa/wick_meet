@@ -99,7 +99,7 @@ export function useSummaryGeneration({
 
       // Show toast notification for generation start
       toast.info(`${isRegeneration ? 'Regenerating' : 'Generating'} summary...`, {
-        description: `Using ${modelConfig.provider}/${modelConfig.model}`,
+        description: `Using ${modelConfig.model}`,
         duration: 3000,
       });
 

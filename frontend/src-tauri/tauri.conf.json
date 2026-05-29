@@ -80,6 +80,7 @@
     },
     "bundle": {
         "active": true,
+        "publisher": "Wick Team",
         "targets": [
             "deb",
             "appimage",

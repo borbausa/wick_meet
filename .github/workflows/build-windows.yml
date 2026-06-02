@@ -504,7 +504,8 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: ". -> target"
-          key: windows-x64-vulkan-v2
+          key: windows-x64-vulkan-v3
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install Vulkan SDK
         uses: humbletim/install-vulkan-sdk@v1.2

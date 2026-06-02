@@ -1,8 +1,8 @@
 {
     "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
     "productName": "Wick Meet",
-    "version": "0.3.0",
-    "identifier": "com.meetily.ai",
+    "version": "0.3.1",
+    "identifier": "com.wick.meet",
     "build": {
         "frontendDist": "../out",
         "devUrl": "http://localhost:3118",
